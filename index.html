@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dni do wakacji</title>
+    <link rel="icon" href="icon.png" />
+    <style type="text/css">
+        body {
+            background-color: #77C8FF;
+            font-family: 'Segoe UI', Tahoma, 'Geneva', Verdana, sans-serif;
+            margin: 20px;
+            touch-action: pan-x pan-y;
+        }
+
+        #days {
+            font-size: min(3.5vw, 1em);
+        }
+
+        #counter_days,
+        #counter_hours {
+            display: inline-block;
+        }
+
+        #counter_days {
+            font-size: 1.5em;
+            margin-right: 0.3em;
+        }
+
+        .month_name {
+            /* color: #0B5587; */
+            color: #0A3C5E;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0.6em 0;
+        }
+
+        .day_left {
+            display: inline-block;
+            margin-right: 0.5em;
+            margin-bottom: 1em;
+        }
+
+        .day_of_week {
+            font-size: 0.8em;
+        }
+
+        .day_of_week_sunday {
+            color: red;
+        }
+
+        .day_number {
+            font-size: 1.1em;
+        }
+
+        .day_of_month {
+            background-color: #FFC778;
+            border: 3px solid black;
+            border-radius: 5px;
+
+            padding: 0.5em;
+            text-align: center;
+            width: 3em;
+
+        }
+
+        .day_not_in_range {
+            background-color: #d1d1d1;
+            opacity: 0.6;
+        }
+
+        .days_left_count {
+            height: 1.75em;
+            line-height: 1.1em;
+            margin-top: 0.2em;
+            text-align: center;
+        }
+
+        .crossed_out {
+            position: relative;
+        }
+
+        .crossed_out::before {
+            border-top: 3px solid red;
+            content: "";
+            opacity: 0.5;
+            position: absolute;
+            left: 27%;
+            top: 33%;
+            transform: rotate(-20deg);
+            width: 2em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header id="header">
+        <h1 id="header_title">Do wakacji zostało:</h1>
+        <h1>
+            <span id="counter_days"></span><span id="counter_hours"></span>
+        </h1>
+    </header>
+
+
+    <div id="days"></div>
+
+    <hr />
+    <p>&copy; 2021 Teodor</p>
+
+    <script>
+
+        function dict(lang)
+        {
+            const dictionary = {
+                pl: {
+                    title: "Dni do wakcji",
+                    holidays_start_in: "Do wakacji zostało",
+                    holidays_begun: "Wakacje się już zaczęły",
+                    days: ["NIEDZ.", "PON.", "WT.", "ŚR.", "CZW.", "PT.", "SOB."],
+
+                    day_suffix: "dni",
+                    day_suffix_1: "dzień",
+                    hours_suffix: "godz.",
+                    minutes_suffix: "min"
+                },
+                en: {
+                    title: "Days until holidays",
+                    holidays_start_in: "Holidays start in",
+                    holidays_begun: "Holidays have already begun",
+                    days: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+
+                    day_suffix: "days",
+                    day_suffix_1: "day",
+                    hours_suffix: "h",
+                    minutes_suffix: "min"
+                }
+            }
+            return dictionary[lang];
+        }
+
+        function main()
+        {
+            const language = getLanguage();
+
+            document.body.parentElement.lang = language;
+            document.title = dict(language).title;
+
+            document.getElementById("header_title").textContent = dict(language).holidays_start_in + ":";
+
+            const now = new Date();
+            const target = new Date(2022, 5, 24);   //24th of June 2022
+
+            const difference_timestamp = target - now;
+
+            if (difference_timestamp < 0)
+            {
+                document.getElementById("header").innerHTML = "<h1>" + dict(language).holidays_begun + "</h1>";
+                return;
+            }
+
+            const difference_days = difference_timestamp / (1000 * 60 * 60 * 24);
+            const full_days = Math.floor(difference_days);
+
+            const difference_hours = (difference_days - full_days) * 24;
+            const full_hours = Math.floor(difference_hours);
+
+            const difference_minutes = (difference_hours - full_hours) * 60;
+            const full_minutes = Math.floor(difference_minutes);
+
+            ///////////////////////////////////////////////////////////////////////////////
+            const start_year = now.getFullYear();
+            const start_month = now.getMonth();
+
+            const end_year = target.getFullYear();
+            const end_month = target.getMonth();
+
+
+            let current_year = start_year;
+            let current_month = start_month;
+
+            const current_hour = now.getHours();
+
+            let months = [];
+            do
+            {
+                const days_count = getDaysInMonth(current_month, current_year);
+                const start_offset = (current_month == start_month && current_year == start_year) ? now.getDate() : 0;
+                const end_offset = (current_month == end_month && current_year == end_year) ? target.getDate() : days_count;
+
+                months.push({
+                    year: current_year,
+                    month: current_month,
+                    start_offset: start_offset,
+                    end_offset: end_offset,
+                    days_count: days_count
+                });
+
+                if (current_month == 11)
+                {
+                    current_month = 0;
+                    current_year++;
+                }
+                else
+                {
+                    current_month++;
+                }
+
+
+            } while (current_year < end_year || current_month <= end_month);
+
+
+            const getDayOfWeek = (id) => dict(language).days[id];
+
+
+            const first_month = new Date(start_year, start_month, 1);
+            let day_of_week_id = first_month.getDay();
+
+
+            let days_left = full_days + months[0].start_offset;
+            let days_left_code = "";
+            months.forEach((month, index) =>
+            {
+                days_left_code += "<div class='month'>";
+                days_left_code += `<div class="month_name">${twoDigitString(month.month + 1)}/${month.year}</div>`;
+
+                for (let i = 1; i <= month.days_count; i++)
+                {
+                    const day_of_week = getDayOfWeek(day_of_week_id);////////////
+
+                    const is_day_in_range_code = (month.start_offset <= i && i <= month.end_offset) ? "" : " day_not_in_range";
+                    const is_sunday_code = (day_of_week_id == 0) ? " day_of_week_sunday" : "";
+
+                    const current_hour_percent = Math.round(current_hour / 24 * 100).toString() + "%";
+
+                    const is_current_day_code = (month.start_offset == i)
+                        ? ` style='background: linear-gradient(90deg, #adcde3 0%, #adcde3 ${current_hour_percent}, #ffc778 ${current_hour_percent}, #ffc778 100%)'` : "";
+
+
+                    days_left_code += `<div class='day_left'>
+                                            <div class='day_of_month${is_day_in_range_code}${is_sunday_code}'${is_current_day_code}>
+                                                <div class="day_of_week">${day_of_week}</div>
+                                                <div class="day_number">${i}</div>
+                                            </div>
+                                            <div class='days_left_count${month.start_offset <= i ? "" : " crossed_out"}'>${days_left > 0 ? days_left : (days_left == 0 ? "😀" : "&nbsp;")}</div>
+                    </div>`;
+
+                    days_left--;
+
+                    day_of_week_id = day_of_week_id == 6 ? 0 : day_of_week_id + 1;
+                }
+
+                days_left_code += "</div>";
+
+            });
+
+            document.getElementById("days").innerHTML = days_left_code;
+
+
+            ///////////////////////////////////////////////////////////////////////////////
+
+            const output = getOutput(language, full_days, full_hours, full_minutes);
+            document.getElementById("counter_days").textContent = output.days;
+            document.getElementById("counter_hours").textContent = output.hours;
+
+            ///////////////////////////////////////////////////////////////////////////////
+        }
+
+        function getLanguage()
+        {
+
+            const pathname = window.location.pathname.split("/")[1];
+            if (pathname == "en")
+            {
+                language = "en";
+            }
+            else
+            {
+                language = "pl";
+                window.history.replaceState("Dni do wakacji", "Dni do wakacji", "/");
+            }
+
+            return language;
+        }
+
+
+        function twoDigitString(n)
+        {
+            if (n <= 9)
+            {
+                return "0" + n.toString();
+            }
+            else
+            {
+                return n.toString();
+            }
+        }
+
+
+        function getDaysInMonth(month, year)
+        {
+            const months_length = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+            let days;
+
+            const isLeapYear = y =>
+            {
+                let res = false;
+
+                if (y % 4 == 0)
+                {
+                    res = true;
+                }
+                if (y % 100 == 0)
+                {
+                    res = false;
+                }
+                if (y % 400 == 0)
+                {
+                    res = true;
+                }
+
+                return res;
+            }
+
+            if (month == 1 && isLeapYear(year))
+            {
+                days = 29;
+            }
+            else 
+            {
+                days = months_length[month];
+            }
+
+            return days;
+        }
+
+
+        function getOutput(lang, full_days, full_hours, full_minutes)
+        {
+            let { day_suffix, day_suffix_1, hours_suffix, minutes_suffix } = dict(lang);
+
+            if (full_days == 1)
+            {
+                day_suffix = day_suffix_1;
+            }
+
+            let result = {
+                days: "",
+                hours: ""
+            };
+
+            if (full_days > 0)
+            {
+                result.days = full_days + "\u00a0" + day_suffix;
+            }
+
+            result.hours = full_hours + "\u00a0" + hours_suffix + "\u00a0" + full_minutes + "\u00a0" + minutes_suffix;
+            return result;
+        }
+
+        main();
+
+///////////////////////////////////////////////////////////////////////////////
+
+    </script>
+</body>
+
+</html>
