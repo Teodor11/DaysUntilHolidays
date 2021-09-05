@@ -120,6 +120,10 @@
                     holidays_begun: "Wakacje się już zaczęły",
                     days: ["NIEDZ.", "PON.", "WT.", "ŚR.", "CZW.", "PT.", "SOB."],
 
+                    title_custom_date: "Odliczanie dni",
+                    days_left: "Do ... zostało",
+                    custom_date_passed: "Wybrana data już minęła",
+
                     day_suffix: "dni",
                     day_suffix_1: "dzień",
                     hours_suffix: "godz.",
@@ -130,6 +134,10 @@
                     holidays_start_in: "Holidays start in",
                     holidays_begun: "Holidays have already begun",
                     days: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+
+                    title_custom_date: "Days countdown",
+                    days_left: "... in",
+                    custom_date_passed: "Selected date has already passed",
 
                     day_suffix: "days",
                     day_suffix_1: "day",
@@ -142,21 +150,29 @@
 
         function main()
         {
+            const now = new Date();
+            const { target, type } = getTargetDate()   //default: 24th of June 2022   
+
             const language = getLanguage();
 
+            console.log({ target, type });
+
             document.body.parentElement.lang = language;
-            document.title = dict(language).title;
 
-            document.getElementById("header_title").textContent = dict(language).holidays_start_in + ":";
 
-            const now = new Date();
-            const target = new Date(2022, 5, 24);   //24th of June 2022
+            const title = (type == "holidays" ? dict(language).title : dict(language).title_custom_date)
+            document.title = title;
+
+            const msg1 = (type == "holidays" ? dict(language).holidays_start_in : dict(language).days_left.replace("...", target.toLocaleDateString()));
+            document.getElementById("header_title").textContent = msg1 + ":";
+
 
             const difference_timestamp = target - now;
 
             if (difference_timestamp < 0)
             {
-                document.getElementById("header").innerHTML = "<h1>" + dict(language).holidays_begun + "</h1>";
+                const msg2 = (type == "holidays" ? dict(language).holidays_begun : dict(language).custom_date_passed);
+                document.getElementById("header").innerHTML = "<h1>" + msg2 + "</h1>";
                 return;
             }
 
@@ -181,6 +197,8 @@
             let current_month = start_month;
 
             const current_hour = now.getHours();
+
+            let i = 0;
 
             let months = [];
             do
@@ -207,8 +225,14 @@
                     current_month++;
                 }
 
+                console.log({ days_count, start_offset, end_offset, current_month, current_year, start_year, end_year, start_month, end_month });
+                if (i >= 10000)
+                {
+                    return;
+                }
+                i++;
 
-            } while (current_year < end_year || current_month <= end_month);
+            } while (current_year < end_year || current_year == end_year && current_month <= end_month);
 
 
             const getDayOfWeek = (id) => dict(language).days[id];
@@ -275,6 +299,10 @@
             {
                 language = "en";
             }
+            else if (pathname == "pl" || pathname == "")
+            {
+                language = "pl";
+            }
             else
             {
                 language = "pl";
@@ -282,6 +310,34 @@
             }
 
             return language;
+        }
+
+
+        function getTargetDate()
+        {
+            const query_string = window.location.search;
+            const url_params = new URLSearchParams(query_string);
+            const date_input_str = url_params.get("day") || "20220624"; //default date - 24th of June 2022
+
+            let type = "custom";
+            if (date_input_str == "20220624")
+            {
+                type = "holidays";
+            }
+
+
+            const year = parseInt(date_input_str.substring(0, 4));
+
+            let month = parseInt(date_input_str.substring(4, 6)) - 1;
+            month = Math.max(0, month);
+            month = Math.min(month, 11);
+
+            let day = parseInt(date_input_str.substring(6, 8));
+            day = Math.max(1, day);
+            day = Math.min(day, getDaysInMonth(month, year));
+
+            const target = new Date(year, month, day);
+            return { target, type };
         }
 
 
