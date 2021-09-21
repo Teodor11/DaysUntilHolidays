@@ -155,8 +155,6 @@
 
             const language = getLanguage();
 
-            console.log({ target, type });
-
             document.body.parentElement.lang = language;
 
 
@@ -225,7 +223,6 @@
                     current_month++;
                 }
 
-                console.log({ days_count, start_offset, end_offset, current_month, current_year, start_year, end_year, start_month, end_month });
                 if (i >= 10000)
                 {
                     return;
@@ -337,6 +334,7 @@
             day = Math.min(day, getDaysInMonth(month, year));
 
             const target = new Date(year, month, day);
+
             return { target, type };
         }
 
