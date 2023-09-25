@@ -290,7 +290,6 @@
 
         function getLanguage()
         {
-
             const pathname = window.location.pathname.split("/")[1];
             if (pathname == "en")
             {
@@ -303,10 +302,40 @@
             else
             {
                 language = "pl";
-                window.history.replaceState("Dni do wakacji", "Dni do wakacji", "/");
+                window.history.pushState({}, "", "");
+            }
+            return language;
+        }
+
+        function getStartOfHolidays()
+        {
+            function getNextFriday(date)
+            {
+                let to_add = 0;
+                if (date.getDay() >= 5)   // Friday/Saturday
+                {
+                    to_add = 12 - date.getDay();
+                }
+                else
+                {
+                    to_add = 5 - date.getDay();
+                }
+
+                return new Date(date.getFullYear(), date.getMonth(), date.getDate() + to_add);
             }
 
-            return language;
+            const d = new Date();
+            const year = d.getFullYear();
+
+            const j1 = new Date(year, 5, 20);       // 20th of June in current year
+            const j2 = new Date(year + 1, 5, 20);   // 20th of June in next year
+
+            const f1 = getNextFriday(j1);
+            const f2 = getNextFriday(j2)
+
+            const res = d.getTime() >= f1.getTime() ? f2 : f1;
+            const res_str = res.getFullYear() + twoDigitString(res.getMonth() + 1) + twoDigitString(res.getDate());
+            return res_str;
         }
 
 
@@ -314,10 +343,10 @@
         {
             const query_string = window.location.search;
             const url_params = new URLSearchParams(query_string);
-            const date_input_str = url_params.get("day") || "20220624"; //default date - 24th of June 2022
+            const date_input_str = url_params.get("day") || getStartOfHolidays(); //default date - start of holidays in Poland
 
             let type = "custom";
-            if (date_input_str == "20220624")
+            if (date_input_str == getStartOfHolidays())
             {
                 type = "holidays";
             }
@@ -416,7 +445,7 @@
 
         main();
 
-///////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////
 
     </script>
 </body>
